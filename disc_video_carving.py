@@ -1,6 +1,7 @@
 import cv2
 import numpy as np
 import argparse
+import imageio as img
 
 # ------------Things to Implement-------------------
 
@@ -43,6 +44,54 @@ def write_video(video, name):
 
     # Release everything if job is finished
     out.release()
+
+SEAM_COLOR = np.array([255, 200, 200])
+frame = img.imread("lawn_mower.jpg")
+
+def rotate_image(image, clockwise):
+    k = 1 if clockwise else 3
+    return np.rot90(image, k)
+
+def visualize(im, boolmask=None, rotate=False):
+    vis = im.astype(np.uint8)
+    if boolmask is not None:
+        vis[np.where(boolmask == False)] = SEAM_COLOR
+    if rotate:
+        vis = rotate_image(vis, False)
+    cv2.imshow("visualization", vis)
+    cv2.waitKey(1)
+    return vis
+
+def saliency_map(frame):
+    height, width = frame.shape[:2]
+    gray_scale = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+
+    energy = np.zeros((height, width))
+    m = np.zeros((height, width))
+
+    U = np.roll(gray_scale, 1, axis=0)
+    L = np.roll(gray_scale, 1, axis=1)
+    R = np.roll(gray_scale, -1, axis=1)
+
+    cU = np.abs(R-L)
+    cL = np.abs(U-L) + cU
+    cR = np.abs(U - R) + cU
+
+    for i in range(1, height):
+        mU = m[i - 1]
+        mL = np.roll(mU, 1)
+        mR = np.roll(mU, -1)
+
+        mULR = np.array([mU, mL, mR])
+        cULR = np.array([cU[i], cL[i], cR[i]])
+        mULR += cULR
+
+        argmins = np.argmin(mULR, axis=0)
+        m[i] = np.choose(argmins, mULR)
+        energy[i] = np.choose(argmins, cULR)
+
+    vis = visualize(energy)
+    cv2.imwrite("forward_energy_demo.jpg", vis)
 
 
 # currentFrame = numpy array
