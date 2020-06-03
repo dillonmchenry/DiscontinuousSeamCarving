@@ -13,21 +13,13 @@ import argparse
 
 # OF COURSE THERE'S OTHER STUFF I JUST CANT THINK OF IT RN
 
-if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description="Retargets a video to specified size")
-    parser.add_argument('--video', type=str, help='The path to the video to retarget')
-    parser.add_argument('--width', type=int, help='Width to retarget video to')
-    parser.add_argument('--height', type=int, help='Height to retarget video to')
-    parser.add_argument('--out', type=str, help='The path to store the output to')
-    args = parser.parse_args()
-
-    # -----------Captures Video Input------------------
-
-    cap = cv2.VideoCapture(args.video)
+# -----------Captures Video Input------------------
+def read_video(name):
+    cap = cv2.VideoCapture(name)
 
     # Check if successfully
     if (cap.isOpened() == False):
-        print("Error opening video file at \'" + str.args.video + "\'")
+        print("Error opening video file at \'" + name + "\'")
 
     video = []
     while (cap.isOpened()):
@@ -39,9 +31,18 @@ if __name__ == '__main__':
             break
     cap.release()
     # 4-D np array: frames, height, width, rgb
-    video = np.array(video)
+    return np.array(video)
 
-    # ----------Writes and Saves video file------------
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description="Retargets a video to specified size")
+    parser.add_argument('--video', type=str, help='The path to the video to retarget')
+    parser.add_argument('--width', type=int, help='Width to retarget video to')
+    parser.add_argument('--height', type=int, help='Height to retarget video to')
+    parser.add_argument('--out', type=str, help='The path to store the output to')
+    args = parser.parse_args()
+
+    video = read_video(args.video)
 
     out = cv2.VideoWriter(args.out, cv2.VideoWriter_fourcc('m','p','4','v'), 30.0, (1920, 1080))
 
