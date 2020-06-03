@@ -23,7 +23,8 @@ if __name__ == '__main__':
 
     # -----------Captures Video Input------------------
 
-    cap = cv2.VideoCapture(args.video)
+    cap = cv2.VideoCapture("bowser_dunk.mp4")
+    out = cv2.VideoWriter("bowza.mp4", -1, 30.0, (1920, 1080))
 
     # Check if successfully
     if (cap.isOpened() == False):
@@ -43,12 +44,14 @@ if __name__ == '__main__':
 
     # ----------Writes and Saves video file------------
 
-    out = cv2.VideoWriter(args.out, -1, 30.0, (1920, 1080))
+
 
     for frame in video:
-        if True:
-            # write the flipped frame
-            out.write(frame)
+        # write the flipped frame
+        out.write(frame)
 
     # Release everything if job is finished
     out.release()
+
+
+def saliency_map(img):
