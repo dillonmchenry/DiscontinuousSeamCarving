@@ -31,7 +31,7 @@ def read_video(name):
             break
     cap.release()
     # 4-D np array: frames, height, width, rgb
-    return np.array(video)
+    return video
 
 
 def write_video(video, name):
@@ -39,7 +39,7 @@ def write_video(video, name):
 
     for frame in video:
         # write the flipped frame
-        out.write(frame)
+        out.write(np.array(frame))
 
     # Release everything if job is finished
     out.release()
