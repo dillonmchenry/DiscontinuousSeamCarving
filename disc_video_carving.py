@@ -45,14 +45,14 @@ def write_video(video, name):
     # Release everything if job is finished
     out.release()
 
-SEAM_COLOR = np.array([255, 200, 200])
-frame = img.imread("lawn_mower.jpg")
 
 def rotate_image(image, clockwise):
     k = 1 if clockwise else 3
     return np.rot90(image, k)
 
+
 def visualize(im, boolmask=None, rotate=False):
+    SEAM_COLOR = np.array([255, 200, 200])
     vis = im.astype(np.uint8)
     if boolmask is not None:
         vis[np.where(boolmask == False)] = SEAM_COLOR
@@ -61,6 +61,7 @@ def visualize(im, boolmask=None, rotate=False):
     cv2.imshow("visualization", vis)
     cv2.waitKey(1)
     return vis
+
 
 def saliency_map(frame):
     height, width = frame.shape[:2]
@@ -116,6 +117,9 @@ if __name__ == '__main__':
     parser.add_argument('--height', type=int, help='Height to retarget video to')
     parser.add_argument('--out', type=str, help='The path to store the output to')
     args = parser.parse_args()
+
+    frame = img.imread("lawn_mower.jpg")
+    saliency_map(frame)
 
     video = read_video(args.video)
 
