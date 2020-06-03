@@ -45,6 +45,21 @@ def write_video(video, name):
     out.release()
 
 
+# currentFrame = numpy array
+# previousSeam = numpy array of pairs of points
+# x, y = point to compute in the current frame
+def compute_temporal_coherence_cost(currentFrame, previousSeam, x, y):
+    seamX = previousSeam[y][0]
+    cost = 0
+    for i in range(min(x, seamX), max(x, seamX)):
+        channelSum1 = 0
+        channelSum2 = 0
+        for j in range(0, currentFrame.shape[2]):
+            channelSum1 += currentFrame[y][i][j]
+            channelSum2 += currentFrame[y][i+1][j]
+        cost += abs(channelSum1 - channelSum2)
+    return cost
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Retargets a video to specified size")
     parser.add_argument('--video', type=str, help='The path to the video to retarget')
