@@ -33,8 +33,9 @@ def read_video(name):
     # 4-D np array: frames, height, width, rgb
     return np.array(video)
 
-def write_video(video):
-    out = cv2.VideoWriter(args.out, cv2.VideoWriter_fourcc('m','p','4','v'), 30.0, (1920, 1080))
+
+def write_video(video, name):
+    out = cv2.VideoWriter(name, cv2.VideoWriter_fourcc('m','p','4','v'), 30.0, (1920, 1080))
 
     for frame in video:
         # write the flipped frame
@@ -54,4 +55,4 @@ if __name__ == '__main__':
 
     video = read_video(args.video)
 
-    write_video(video)
+    write_video(video, args.out)
