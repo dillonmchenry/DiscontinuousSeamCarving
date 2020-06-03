@@ -43,12 +43,11 @@ if __name__ == '__main__':
 
     # ----------Writes and Saves video file------------
 
-    out = cv2.VideoWriter(args.out, -1, 30.0, (1920, 1080))
+    out = cv2.VideoWriter(args.out, cv2.VideoWriter_fourcc('m','p','4','v'), 30.0, (1920, 1080))
 
     for frame in video:
-        if True:
-            # write the flipped frame
-            out.write(frame)
+        # write the flipped frame
+        out.write(frame)
 
     # Release everything if job is finished
     out.release()
