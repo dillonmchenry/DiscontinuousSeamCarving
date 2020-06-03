@@ -1,5 +1,6 @@
 import cv2
 import numpy as np
+import argparse
 
 # ------------Things to Implement-------------------
 
@@ -12,36 +13,42 @@ import numpy as np
 
 # OF COURSE THERE'S OTHER STUFF I JUST CANT THINK OF IT RN
 
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description="Retargets a video to specified size")
+    parser.add_argument('--video', type=str, help='The path to the video to retarget')
+    parser.add_argument('--width', type=int, help='Width to retarget video to')
+    parser.add_argument('--height', type=int, help='Height to retarget video to')
+    parser.add_argument('--out', type=str, help='The path to store the output to')
+    args = parser.parse_args()
 
-# -----------Captures Video Input------------------
+    # -----------Captures Video Input------------------
 
-cap = cv2.VideoCapture('bowser_dunk.mp4')
+    cap = cv2.VideoCapture(args.video)
 
-# Check if successfully
-if (cap.isOpened() == False):
-    print("Error opening video file")
+    # Check if successfully
+    if (cap.isOpened() == False):
+        print("Error opening video file at \'" + str.args.video + "\'")
 
-video = []
-while (cap.isOpened()):
-    # Capture frame-by-frame
-    ret, frame = cap.read()
-    if ret == True:
-        video.append(frame)
-    else:
-        break
-cap.release()
-# 4-D np array: frames, height, width, rgb
-video = np.array(video)
+    video = []
+    while (cap.isOpened()):
+        # Capture frame-by-frame
+        ret, frame = cap.read()
+        if ret:
+            video.append(frame)
+        else:
+            break
+    cap.release()
+    # 4-D np array: frames, height, width, rgb
+    video = np.array(video)
 
-# ----------Writes and Saves video file------------
+    # ----------Writes and Saves video file------------
 
-out = cv2.VideoWriter('bowza.mp4', -1, 30.0, (1920, 1080))
+    out = cv2.VideoWriter(args.out, -1, 30.0, (1920, 1080))
 
-for frame in video:
-    if True:
-        # write the flipped frame
-        out.write(frame)
+    for frame in video:
+        if True:
+            # write the flipped frame
+            out.write(frame)
 
-# Release everything if job is finished
-cap.release()
-out.release()
+    # Release everything if job is finished
+    out.release()
