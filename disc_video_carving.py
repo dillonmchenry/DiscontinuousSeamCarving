@@ -99,7 +99,7 @@ def saliency_map(frame):
 # currentFrame = numpy array
 # previousSeam = numpy array of pairs of points
 # x, y = point to compute in the current frame
-def compute_temporal_coherence_cost(currentFrame, previousSeam, x, y):
+def compute_temporal_coherence_cost_pixel(currentFrame, previousSeam, x, y):
     seamX = previousSeam[y][0]
     cost = 0
     for i in range(min(x, seamX), max(x, seamX)):
@@ -111,7 +111,26 @@ def compute_temporal_coherence_cost(currentFrame, previousSeam, x, y):
         cost += abs(channelSum1 - channelSum2)
     return cost
 
-def calculate_seam()
+def compute_temporal_coherence_cost(currentFrame, previousSeam):
+    cost = []
+    for i in range(0, currentFrame.shape[0]):
+        cost.append([])
+        for j in range(0, currentFrame.shape[1]):
+            cost[i].append(compute_temporal_coherence_cost_pixel(currentFrame, previousSeam, j, i))
+    return cost
+
+def compute_spatial_coherence_cost_pixel(row, rowAbove, x, y):
+    # If border pixel
+    horizontalCost = 0
+    if x == 0:
+        horizontalCost = abs(abs(row[y][x] - row[y][x+1]) - abs(row[y][x+1] - row[y][x+2]))
+    elif x == row.shape[0]:
+        horizontalCost = abs(abs(row[y][x] - row[y][x-1]) - abs(row[y][x-1] - row[y][x-2]))
+    else:
+        horizontalCost = abs(row[y][x-1]-row[y][x]) + abs(row[y][x]-row[y][x+1]) - abs(row[y][x-1]-row[y][x+1])
+
+    return None
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Retargets a video to specified size")
@@ -121,9 +140,7 @@ if __name__ == '__main__':
     parser.add_argument('--out', type=str, help='The path to store the output to')
     args = parser.parse_args()
 
-    frame = img.imread("lawn_mower.jpg")
-    saliency_map(frame)
-
     video = read_video(args.video)
+    saliency_map(video[0])
 
     write_video(video, args.out)
