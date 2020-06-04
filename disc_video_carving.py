@@ -93,6 +93,7 @@ def saliency_map(frame):
 
     vis = visualize(energy)
     cv2.imwrite("forward_energy_demo.jpg", vis)
+    return vis
 
 
 # currentFrame = numpy array
@@ -109,6 +110,8 @@ def compute_temporal_coherence_cost(currentFrame, previousSeam, x, y):
             channelSum2 += currentFrame[y][i+1][j]
         cost += abs(channelSum1 - channelSum2)
     return cost
+
+def calculate_seam()
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Retargets a video to specified size")
