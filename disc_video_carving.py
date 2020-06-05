@@ -2,6 +2,7 @@ import cv2
 import numpy as np
 import argparse
 import imageio as img
+import seam
 
 # ------------Things to Implement-------------------
 
@@ -160,24 +161,21 @@ def highlight_seam_mask(frame, seam):
 # previousSeam = numpy array of pairs of points
 # x, y = point to compute in the current frame
 def compute_temporal_coherence_cost_pixel(currentFrame, previousSeam, x, y):
-    seamX = previousSeam[y][0]
+    seamX = previousSeam[y][1]
     cost = 0
     for i in range(min(x, seamX), max(x, seamX)):
-        channelSum1 = 0
-        channelSum2 = 0
-        for j in range(0, currentFrame.shape[2]):
-            channelSum1 += currentFrame[y][i][j]
-            channelSum2 += currentFrame[y][i+1][j]
-        cost += abs(channelSum1 - channelSum2)
+        channels1 = np.linalg.norm(currentFrame[y][i])
+        channels2 = np.linalg.norm(currentFrame[y][i+1])
+        cost += abs(channels1 - channels2)
     return cost
 
 def compute_temporal_coherence_cost(currentFrame, previousSeam):
-    cost = []
+    costMap = []
     for i in range(0, currentFrame.shape[0]):
-        cost.append([])
+        costMap.append([])
         for j in range(0, currentFrame.shape[1]):
-            cost[i].append(compute_temporal_coherence_cost_pixel(currentFrame, previousSeam, j, i))
-    return cost
+            costMap[i].append(compute_temporal_coherence_cost_pixel(currentFrame, previousSeam, j, i))
+    return costMap
 
 def compute_spatial_coherence_cost_pixel(row, rowAbove, x, y):
     # If border pixel
@@ -202,6 +200,7 @@ if __name__ == '__main__':
 
     print("INFO: Reading Video: ", args.video)
     video = read_video(args.video)
+
     print("INFO: Finished Reading Video")
     print("INFO: Calculating Saliency Map")
     saliency_frame = saliency_map(video[120])
