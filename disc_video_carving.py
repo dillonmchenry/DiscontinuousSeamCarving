@@ -58,8 +58,8 @@ def visualize(im, boolmask=None, rotate=False):
         vis[np.where(boolmask == False)] = SEAM_COLOR
     if rotate:
         vis = rotate_image(vis, False)
-    cv2.imshow("visualization", vis)
-    cv2.waitKey(1)
+    #cv2.imshow("visualization", vis)
+    #cv2.waitKey(1)
     return vis
 
 
@@ -92,9 +92,69 @@ def saliency_map(frame):
         energy[i] = np.choose(argmins, cULR)
 
     vis = visualize(energy)
+    print("INFO: Finished calculating Saliency Map")
     cv2.imwrite("forward_energy_demo.jpg", vis)
+
     return vis
 
+
+def carve_seams(frame):
+    frame = np.array(frame)
+    seams = [[] for i in range(frame.shape[1])]
+    energies = np.zeros(frame.shape[1])
+
+    min_energy = np.amin(frame[0, 0:2])
+    y = np.where(frame[0, 0:2] == min_energy)[0][0] # calculates seam for top left corner
+    seams[0].append([0, y]) 
+    seams[0].append([1, 0])
+    energies[0] += min_energy + frame[1][0] 
+
+    for j in range(1, frame.shape[1] - 1):
+        min_energy = np.amin(frame[0, j-1:j+2])
+        y = j - 1 + np.where(frame[0, j-1:j+2] == min_energy)[0][0] #calculates initial seams for the second row, from the first row
+        seams[j].append([0, y])
+        seams[j].append([1, j]) 
+        energies[j] += min_energy + frame[1][j] 
+
+    min_energy = np.amin(frame[0, frame.shape[1]-2:frame.shape[1]])
+    y = frame.shape[1] - 2 + np.where(frame[0, frame.shape[1]-2:frame.shape[1]] == min_energy)[0][0] #calculates seam from top left
+    seams[frame.shape[1]-1].append([0, y])
+    seams[frame.shape[1]-1].append([1, frame.shape[1]-1]) 
+    energies[frame.shape[1]-1] += min_energy + frame[1][frame.shape[1]- 1] 
+        
+    for i in range(2, frame.shape[0]): #loops through all subsequent rows
+        new_seams = [[] for i in range(frame.shape[1])]
+        new_energies = np.zeros(frame.shape[1])
+
+        min_energy = np.amin(energies[0:2])
+        y = np.where(energies[0:2] == min_energy)[0][0] #calculates the new seam to the left
+        new_seams[0] = seams[y].copy()
+        new_seams[0].append([i, 0]) 
+        new_energies[0] = min_energy + frame[i][0] 
+
+        for j in range(1, frame.shape[1] - 1):
+            min_energy = np.amin(energies[j-1:j+2])
+            y = j - 1 + np.where(energies[j-1:j+2] == min_energy)[0][0] #calculates all middle seams
+            new_seams[j] = seams[y].copy()
+            new_seams[j].append([i, j])  
+            new_energies[j] = min_energy + frame[i][j]
+
+        min_energy = np.amin(energies[frame.shape[1]-2:frame.shape[1]])
+        y = frame.shape[1] - 2 + np.where(energies[frame.shape[1]-2:frame.shape[1]] == min_energy)[0][0] #calculates last seam of a row
+        new_seams[frame.shape[1]-1] = seams[y].copy()
+        new_seams[frame.shape[1]-1].append([i, frame.shape[1]-1]) 
+        new_energies[frame.shape[1]-1] = min_energy + frame[i][frame.shape[1]- 1] 
+
+        seams = new_seams.copy()
+        energies = new_energies[:]
+
+    return (seams, energies)
+
+def highlight_seam_mask(frame, seam):
+    new_frame = frame.copy()
+    for pixel in seam:
+        new_frame[pixel[0], pixel[1]] = [255, 180, 180]
+    return new_frame
 
 # currentFrame = numpy array
 # previousSeam = numpy array of pairs of points
@@ -140,7 +200,23 @@ if __name__ == '__main__':
     parser.add_argument('--out', type=str, help='The path to store the output to')
     args = parser.parse_args()
 
+    print("INFO: Reading Video: ", args.video)
     video = read_video(args.video)
-    saliency_map(video[0])
+    print("INFO: Finished Reading Video")
+    print("INFO: Calculating Saliency Map")
+    saliency_frame = saliency_map(video[120])
 
-    write_video(video, args.out)
+    print("INFO: Calculating Seams")
+    seam, energies = carve_seams(saliency_frame)
+    print("INFO: Finished Calculating Seams")
+    min_index = np.where(energies == np.amin(energies))[0][::-1]
+    print(min_index)
+    min_index = min_index[0] 
+    print(min_index)
+    min_seam = seam[min_index]
+    mask = highlight_seam_mask(video[120], min_seam)
+
+    vis2 = visualize(mask)
+    cv2.imwrite("seam_demo.jpg", vis2)
+
+    #write_video(video, args.out)
