@@ -151,7 +151,7 @@ def carve_seams(frame):
 
     return (seams, energies)
 
-def highlight_seam_mask(frame, seam):
+def highlight_seam(frame, seam):
     new_frame = frame.copy()
     for pixel in seam:
         new_frame[pixel[0], pixel[1]] = [255, 180, 180]
@@ -213,7 +213,7 @@ if __name__ == '__main__':
     min_index = min_index[0] 
     print(min_index)
     min_seam = seam[min_index]
-    mask = highlight_seam_mask(video[120], min_seam)
+    mask = highlight_seam(video[120], min_seam)
 
     vis2 = visualize(mask)
     cv2.imwrite("seam_demo.jpg", vis2)
