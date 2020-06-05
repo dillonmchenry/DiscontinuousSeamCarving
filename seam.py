@@ -44,7 +44,7 @@ def carve_seams(frame):
 		min_energy = np.amin(energies[frame.shape[1]-2:frame.shape[1]])
 		y = frame.shape[1] - 2 + np.where(energies[frame.shape[1]-2:frame.shape[1]] == min_energy)[0][0] #calculates last seam of a row
 		new_seams[frame.shape[1]-1] = seams[y].copy()
-		new_seams.append([i, frame.shape[1]-1]) 
+		new_seams[frame.shape[1]-1].append([i, frame.shape[1]-1]) 
 		new_energies[frame.shape[1]-1] = min_energy + frame[i][frame.shape[1]- 1] 
 
 		seams = new_seams.copy()
