@@ -52,6 +52,17 @@ def carve_seams(frame):
 
 	return (seams, energies)
 
+def get_n_seams(seams, energies, n):
+	newSeams = []
+	modifiedEnergies = energies.copy()
+	if (energies.shape[0] < n):
+		raise Exception("Cannot get " + str(n) + " seams. Only " + energies.shape[0] + " exist")
+	maxEnergy = np.max(energies)
+	for i in range(0, n):
+		minIndex = np.where(modifiedEnergies == np.min(modifiedEnergies))[0][0]
+		modifiedEnergies[minIndex] = maxEnergy + 1
+		newSeams.append(seams[minIndex])
+	return newSeams
 
 if __name__ == "__main__":
 	frame = np.random.randint(low=1, high=100, size=30)
@@ -59,4 +70,6 @@ if __name__ == "__main__":
 	print(frame)
 	seam, energies = carve_seams(frame)
 	print(seam)
+	mySeams = get_n_seams(seam, energies, 6)
+
 	print(energies)
