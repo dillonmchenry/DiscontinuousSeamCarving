@@ -100,7 +100,7 @@ def saliency_map(frame):
 # currentFrame = numpy array
 # previousSeam = numpy array of pairs of points
 # x, y = point to compute in the current frame
-def compute_temporal_coherence_cost_pixel1(currentFrame, previousSeam, x, y):
+def compute_temporal_coherence_cost_pixel(currentFrame, previousSeam, x, y):
     seamX = previousSeam[y][1]
     cost = 0
     for i in range(min(x, seamX), max(x, seamX)):
@@ -109,28 +109,13 @@ def compute_temporal_coherence_cost_pixel1(currentFrame, previousSeam, x, y):
         cost += abs(channels1 - channels2)
     return cost
 
-def compute_temporal_coherence_cost_pixel2(currentFrame, previousSeam, x, y):
-    seamX = previousSeam[y][1]
-    cost = 0
-    row = currentFrame[y]
-    rowWithRemovedPixel = np.delete(row.copy(), seamX)
-    for i in range(0, x):
-        cost += np.linalg.norm(row[i] - rowWithRemovedPixel[i]) ** 2
-    for i in range(x+1, row.shape[0]):
-        cost += np.linalg.norm(row[i] - rowWithRemovedPixel[i-1]) ** 2
-    return cost
-
-
 def compute_temporal_coherence_cost(currentFrame, previousSeam):
-    costMap1 = []
-    costMap2 = []
+    costMap = []
     for i in range(0, currentFrame.shape[0]):
-        costMap1.append([])
-        costMap2.append([])
+        costMap.append([])
         for j in range(0, currentFrame.shape[1]):
-            costMap1[i].append(compute_temporal_coherence_cost_pixel1(currentFrame, previousSeam, j, i))
-            costMap2[i].append(compute_temporal_coherence_cost_pixel2(currentFrame, previousSeam, j, i))
-    return (costMap1, costMap2)
+            costMap[i].append(compute_temporal_coherence_cost_pixel(currentFrame, previousSeam, j, i))
+    return costMap
 
 def compute_spatial_coherence_cost_pixel(row, rowAbove, x, y):
     # If border pixel
