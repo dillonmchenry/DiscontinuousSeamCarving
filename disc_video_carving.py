@@ -119,6 +119,7 @@ def compute_temporal_coherence_cost(currentFrame, previousSeam):
             cost[i].append(compute_temporal_coherence_cost_pixel(currentFrame, previousSeam, j, i))
     return cost
 
+
 def compute_spatial_coherence_cost_pixel(row, rowAbove, x, y):
     # If border pixel
     horizontalCost = 0
