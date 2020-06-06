@@ -222,6 +222,19 @@ def retarget_video(video, width, height):
 
             pass
 
+# Weights is tuple of (SC:TC:S)
+def getPixelMeasures(frame, spatialWindow, weights, previousSeam=None):
+    spatialWeight, temporalWeight, saliencyWeight = weights / np.sum(weights)
+    spatialMap = spatial_coherence.compute_spatial_coherence_cost(frame, spatialWindow)
+    spatialMap = spatialMap / np.max(spatialMap) * spatialWeight
+    saliency = saliency_map(frame)
+    saliency = saliency / np.max(saliency) * saliencyWeight
+    if (previousSeam == None):
+        return spatialMap + saliency
+    temporalMap = compute_temporal_coherence_cost(frame, previousSeam)
+    temporalMap = temporalMap / np.max(temporalMap) * temporalWeight
+    return (spatialMap + saliency + temporalMap) * 255
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Retargets a video to specified size")
     parser.add_argument('--video', type=str, help='The path to the video to retarget')
@@ -255,14 +268,17 @@ if __name__ == '__main__':
     #print("INFO: Saving New Image")
     #cv2.imwrite("temporal_map_demo.jpg", temporal_map.astype(np.uint8))
 
+    costMap = getPixelMeasures(video[121], 15, (5, 1, 2), min_seam)
+    cv2.imwrite("cost_map_demo.jpg", costMap)
+
     print("INFO: Calculating Seams from Temporal Cost")
-    seam2, energies2 = carve_seams(saliency_frame)
+    seam2, energies2 = carve_seams(costMap)
     min_index2 = np.where(energies2 == np.amin(energies2))[0][::-1]
     min_index2 = min_index2[0] 
     min_seam2 = seam2[min_index]
 
     mask2 = highlight_seam(video[121], min_seam2)
     print("INFO: Saving New Image")
-    cv2.imwrite("temporal_seam_demo.jpg", mask2)
+    cv2.imwrite("cost_seam_demo.jpg", mask2)
 
     #write_video(video, args.out)
