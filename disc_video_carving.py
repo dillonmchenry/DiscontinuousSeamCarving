@@ -3,6 +3,7 @@ import imageio
 import numpy as np
 import argparse
 import imageio as img
+
 import seam
 import spatial_coherence
 
@@ -65,10 +66,8 @@ def visualize(im, boolmask=None, rotate=False):
     #cv2.waitKey(1)
     return vis
 
-
-def saliency_map(frame):
-    height, width = frame.shape[:2]
-    gray_scale = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+def saliency_map(gray_scale):
+    height, width = gray_scale.shape[:2]
 
     energy = np.zeros((height, width))
     m = np.zeros((height, width))
@@ -94,15 +93,9 @@ def saliency_map(frame):
         m[i] = np.choose(argmins, mULR)
         energy[i] = np.choose(argmins, cULR)
 
-    vis = visualize(energy)
-    print("INFO: Finished calculating Saliency Map")
-    cv2.imwrite("forward_energy_demo.jpg", vis)
-
-    return vis
-
+    return energy.astype(np.uint8)
 
 def carve_seams(frame):
-    frame = np.array(frame)
     seams = [[] for i in range(frame.shape[1])]
     energies = np.zeros(frame.shape[1])
 
@@ -165,16 +158,16 @@ def compute_temporal_coherence_cost(currentFrame, previousSeam):
         costMap.append([0 for x in range(currentFrame.shape[1])])
         cumulativeCost = 0
         for j in range(previousSeam[i][1]-1, -1, -1):
-            channels1 = np.linalg.norm(currentFrame[i][j])
-            channels2 = np.linalg.norm(currentFrame[i][j + 1])
-            cumulativeCost += abs(channels1 - channels2)
+            # channels1 = np.linalg.norm(currentFrame[i][j])
+            # channels2 = np.linalg.norm(currentFrame[i][j + 1])
+            cumulativeCost += np.absolute(currentFrame[i][j] - currentFrame[i][j + 1])
             costMap[i][j] = cumulativeCost
         cumulativeCost = 0
         costMap[i][previousSeam[i][1]] = 0
         for j in range(previousSeam[i][1]+1, currentFrame.shape[1]):
-            channels1 = np.linalg.norm(currentFrame[i][j])
-            channels2 = np.linalg.norm(currentFrame[i][j - 1])
-            cumulativeCost += abs(channels1 - channels2)
+            # channels1 = np.linalg.norm(currentFrame[i][j])
+            # channels2 = np.linalg.norm(currentFrame[i][j - 1])
+            cumulativeCost += np.absolute(currentFrame[i][j] - currentFrame[i][j - 1])
             costMap[i][j] = cumulativeCost
             
     return costMap
@@ -224,14 +217,16 @@ def retarget_video(video, width, height):
             pass
 
 # Weights is tuple of (SC:TC:S)
-def getPixelMeasures(frame, spatialWindow, weights, previousSeam=None):
+def getPixelMeasures(frameIn, spatialWindow, weights, previousSeam=None):
+    frame = cv2.cvtColor(frameIn, cv2.COLOR_BGR2GRAY)
+    frame = np.asarray(frame, dtype=int)
     spatialWeight, temporalWeight, saliencyWeight = weights / np.sum(weights)
     spatialMap = spatial_coherence.compute_spatial_coherence_cost(frame, spatialWindow)
     spatialMap = spatialMap / np.max(spatialMap) * spatialWeight
     saliency = saliency_map(frame)
     saliency = saliency / np.max(saliency) * saliencyWeight
-    if (previousSeam == None):
-        return spatialMap + saliency
+    if (previousSeam is None):
+        return (spatialMap + saliency) * 255
     temporalMap = compute_temporal_coherence_cost(frame, previousSeam)
     temporalMap = temporalMap / np.max(temporalMap) * temporalWeight
     return (spatialMap + saliency + temporalMap) * 255

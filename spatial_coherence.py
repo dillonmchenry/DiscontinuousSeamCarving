@@ -1,6 +1,7 @@
 import cv2
 import imageio
 import numpy as np
+
 import disc_video_carving
 
 
@@ -113,29 +114,27 @@ def compute_spatial_coherence_cost2(frame, window):
 
     return cost_map
 
-
-def compute_spatial_coherence_cost(frameIn, window):
+def compute_spatial_coherence_cost(frame, window):
     #Precompute vertical gradients
-    height, width = frameIn.shape[:2]
+    height, width = frame.shape[:2]
     costMap = np.zeros((height, width))
-    frame = cv2.cvtColor(frameIn, cv2.COLOR_BGR2GRAY)
-    frame = np.asarray(frame, dtype=int)
+
     verticalGradients = np.zeros((height, width))
     DRGradients = np.zeros((height, width-1))
     for i in range(0, frame.shape[0]):
         row = frame[i]
         if (i > 0):
             rowAbove = frame[i - 1]
-            verticalGradients[i] = abs(row - rowAbove)
-            DRGradients[i] = abs(row[:-1] - rowAbove[1:])
+            verticalGradients[i] = np.absolute(row - rowAbove)
+            DRGradients[i] = np.absolute(row[:-1] - rowAbove[1:])
         for j in range(0, frame.shape[1]):
             if j == 0:
-                horizontalCost = abs(abs(row[j] - row[j + 1]) - abs(row[j + 1] - row[j + 2]))
+                horizontalCost = np.absolute(np.absolute(row[j] - row[j + 1]) - np.absolute(row[j + 1] - row[j + 2]))
             elif j == row.shape[0] - 1:
-                horizontalCost = abs(abs(row[j] - row[j - 1]) - abs(row[j - 1] - row[j - 2]))
+                horizontalCost = np.absolute(np.absolute(row[j] - row[j - 1]) - np.absolute(row[j - 1] - row[j - 2]))
             # Internal Pixel
             else:
-                horizontalCost = abs(row[j - 1] - row[j]) + abs(row[j] - row[j + 1]) - abs(
+                horizontalCost = np.absolute(row[j - 1] - row[j]) + np.absolute(row[j] - row[j + 1]) - np.absolute(
                     row[j - 1] - row[j + 1])
             if (i == 0):
                 costMap[i][j] = horizontalCost
@@ -148,11 +147,9 @@ def compute_spatial_coherence_cost(frameIn, window):
 
 if __name__ == '__main__':
     video = disc_video_carving.read_video("bowser_dunk_480.m4v")
-    spatial_map2 = compute_spatial_coherence_cost2(video[120], 10)
+    frame = cv2.cvtColor(video[120], cv2.COLOR_BGR2GRAY)
+    frame = np.asarray(frame, dtype=int)
+    spatial_map2 = compute_spatial_coherence_cost(frame, 10)
     spatial_map2 = spatial_map2 / np.max(spatial_map2) * 255
     cv2.imwrite("bowser_spatial_demo.jpg", spatial_map2)
 
-    im = imageio.imread('lawn_mower.jpg')
-    spatial_map = compute_spatial_coherence_cost(im, 10)
-    spatial_map = spatial_map / np.max(spatial_map) * 255
-    cv2.imwrite("spatial_demo.jpg", spatial_map)
