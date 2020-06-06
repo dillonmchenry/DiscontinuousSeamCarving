@@ -1,4 +1,5 @@
 import numpy as np
+import disc_video_carving
 
 def carve_seams(frame):
 	frame = np.array(frame)
@@ -55,6 +56,7 @@ def carve_seams(frame):
 def get_n_seams(seams, energies, n):
 	newSeams = []
 	modifiedEnergies = energies.copy()
+	newEnergies = []
 	if (energies.shape[0] < n):
 		raise Exception("Cannot get " + str(n) + " seams. Only " + energies.shape[0] + " exist")
 	maxEnergy = np.max(energies)
@@ -62,7 +64,8 @@ def get_n_seams(seams, energies, n):
 		minIndex = np.where(modifiedEnergies == np.min(modifiedEnergies))[0][0]
 		modifiedEnergies[minIndex] = maxEnergy + 1
 		newSeams.append(seams[minIndex])
-	return newSeams
+		newEnergies.append(energies[minIndex])
+	return (newSeams, newEnergies)
 
 if __name__ == "__main__":
 	frame = np.random.randint(low=1, high=100, size=30)
@@ -70,6 +73,8 @@ if __name__ == "__main__":
 	print(frame)
 	seam, energies = carve_seams(frame)
 	print(seam)
-	mySeams = get_n_seams(seam, energies, 6)
+	mySeams = get_n_seams(seam, energies, 1)
+	temporal_mapg = disc_video_carving.compute_temporal_coherence_cost(frame, mySeams[0][0])
+
 
 	print(energies)
