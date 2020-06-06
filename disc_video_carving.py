@@ -176,6 +176,7 @@ def compute_temporal_coherence_cost(currentFrame, previousSeam):
             channels2 = np.linalg.norm(currentFrame[i][j - 1])
             cumulativeCost += abs(channels1 - channels2)
             costMap[i][j] = cumulativeCost
+            
     return costMap
 
 def retarget_video(video, width, height):
