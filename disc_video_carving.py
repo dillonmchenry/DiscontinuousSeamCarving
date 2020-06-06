@@ -178,19 +178,6 @@ def compute_temporal_coherence_cost(currentFrame, previousSeam):
             costMap[i][j] = cumulativeCost
     return costMap
 
-
-def compute_spatial_coherence_cost_pixel(row, rowAbove, x, y):
-    # If border pixel
-    horizontalCost = 0
-    if x == 0:
-        horizontalCost = abs(abs(row[y][x] - row[y][x+1]) - abs(row[y][x+1] - row[y][x+2]))
-    elif x == row.shape[0]:
-        horizontalCost = abs(abs(row[y][x] - row[y][x-1]) - abs(row[y][x-1] - row[y][x-2]))
-    else:
-        horizontalCost = abs(row[y][x-1]-row[y][x]) + abs(row[y][x]-row[y][x+1]) - abs(row[y][x-1]-row[y][x+1])
-
-    return None
-
 def retarget_video(video, width, height):
     widthDif = video.shape[2] - width
     heightDif = video.shape[1] - height
@@ -260,9 +247,6 @@ if __name__ == '__main__':
     mask = highlight_seam(video[120], min_seam)
     print("INFO: Saving New Image")
     cv2.imwrite("saliency_seam_demo.jpg", mask)
-
-    print("INFO: Calculating Spatial Cost in Next Frame")
-    #print(spatial_map)
 
     print("INFO: Calculating Temporal Cost to Next Frame")
     temporal_map = compute_temporal_coherence_cost(video[121], min_seam)
