@@ -3,14 +3,6 @@ import imageio
 import numpy as np
 
 
-# Sum of different in gradients both diagonal and vertical
-def calc_sum(xa, xb, row, rowAbove):
-    sum1 = 0
-    for x in range(xa, xb):
-        sum1 += abs(abs(row[x] - rowAbove[x]) - abs(row[x] - rowAbove[x + 1]))
-
-    return sum1
-
 
 def compute_spatial_coherence_cost_pixel(row, rowAbove, x, y, window):
     horizontalCost = 0
@@ -35,14 +27,22 @@ def compute_spatial_coherence_cost_pixel(row, rowAbove, x, y, window):
         # Moves to the left (if possible)
         if x - i >= 0:
             xa = x - i
-            sum1 += calc_sum(xa, x - 1, row, rowAbove)
-            sum2 += calc_sum(xa + 1, x, row, rowAbove)
+            for j in range(xa, x):
+                gradient = abs(abs(row[j] - rowAbove[j]) - abs(row[j] - rowAbove[j + 1]))
+                if j < x:
+                    sum1 += gradient
+                if j > xa:
+                    sum2 += gradient
 
         # Moves to the right (if possible)
         if x + i <= len(row) - 1:
             xa = x + i
-            sum1 += calc_sum(x, xa - 1, row, rowAbove)
-            sum2 += calc_sum(x + 1, xa, row, rowAbove)
+            for j in range(xa, x):
+                gradient = abs(abs(row[j] - rowAbove[j]) - abs(row[j] - rowAbove[j + 1]))
+                if j < x:
+                    sum1 += gradient
+                if j > xa:
+                    sum2 += gradient
 
     verticalCost = sum1 + sum2
 

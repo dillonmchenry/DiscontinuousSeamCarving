@@ -261,9 +261,6 @@ if __name__ == '__main__':
     print("INFO: Saving New Image")
     cv2.imwrite("saliency_seam_demo.jpg", mask)
 
-    print("INFO: Calculating Spatial Cost in Next Frame")
-    print(spatial_map)
-
     print("INFO: Calculating Temporal Cost to Next Frame")
     temporal_map3 = compute_temporal_coherence_cost(video[121], min_seam)
     #print("INFO: Saving New Image")
