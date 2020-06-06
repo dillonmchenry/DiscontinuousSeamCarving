@@ -64,4 +64,7 @@ def compute_spatial_coherence_cost(frame, window):
 
 if __name__ == '__main__':
     im = imageio.imread('lawn_mower.jpg')
-    print(compute_spatial_coherence_cost(im, 10))
+    spatial_map = compute_spatial_coherence_cost(im, 10)
+    spatial_map = spatial_map / np.max(spatial_map) * 255
+    cv2.imwrite("spatial_demo.jpg", spatial_map)
+
