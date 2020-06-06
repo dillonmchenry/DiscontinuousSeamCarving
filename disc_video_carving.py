@@ -25,7 +25,7 @@ def read_video(name):
     if (cap.isOpened() == False):
         print("Error opening video file at \'" + name + "\'")
 
-    video = []
+    video = []  
     while (cap.isOpened()):
         # Capture frame-by-frame
         ret, frame = cap.read()
@@ -153,6 +153,34 @@ def carve_seams(frame):
 
     return (seams, energies)
 
+def carve_seams_piecewise(frame, width):
+    frame = np.array(frame)
+    seams = [[] for i in range(frame.shape[1])]
+    energies = np.zeros(frame.shape[1])
+
+    for i in range(frame.shape[1]):
+        seams[i].append([0, i])
+        energies[i] = frame[0, i]
+
+    for y in range(1, frame.shape[0]):
+        new_seams = [[] for i in range(frame.shape[1])]
+        new_energies = [0 for i in range(frame.shape[1])]
+        for x in range(frame.shape[1]):
+            leftBound = x - width if x > width else 0
+            rightBound = x + width if x + width < frame.shape[1] else frame.shape[1] - 1
+
+            min_energy = np.amin(energies[leftBound:rightBound])
+            min_index = np.where(energies == min_energy)[0][0]
+            new_seams[x] = seams[min_index].copy()
+            new_seams[x].append([y, min_index])
+            new_energies[x] = min_energy + frame[y, min_index]
+
+        seams = new_seams.copy()
+        energies = new_energies.copy()
+
+
+    return (seams, energies)
+
 def highlight_seam(frame, seam):
     new_frame = frame.copy()
     for pixel in seam:
@@ -177,6 +205,38 @@ def compute_temporal_coherence_cost(currentFrame, previousSeam):
             cumulativeCost += abs(channels1 - channels2)
             costMap[i][j] = cumulativeCost
             
+    return costMap
+
+def compute_spatial_coherence_cost(frameIn, window):
+    #Precompute vertical gradients
+    height, width = frameIn.shape[:2]
+    costMap = np.zeros((height, width))
+    frame = cv2.cvtColor(frameIn, cv2.COLOR_BGR2GRAY)
+    frame = np.asarray(frame, dtype=int)
+    verticalGradients = np.zeros((height, width))
+    DRGradients = np.zeros((height, width-1))
+    for i in range(0, frame.shape[0]):
+        row = frame[i]
+        if (i > 0):
+            rowAbove = frame[i - 1]
+            verticalGradients[i] = abs(row - rowAbove)
+            DRGradients[i] = abs(row[:-1] - rowAbove[1:])
+        for j in range(0, frame.shape[1]):
+            if j == 0:
+                horizontalCost = abs(abs(row[j] - row[j + 1]) - abs(row[j + 1] - row[j + 2]))
+            elif j == row.shape[0] - 1:
+                horizontalCost = abs(abs(row[j] - row[j - 1]) - abs(row[j - 1] - row[j - 2]))
+            # Internal Pixel
+            else:
+                horizontalCost = abs(row[j - 1] - row[j]) + abs(row[j] - row[j + 1]) - abs(
+                    row[j - 1] - row[j + 1])
+            if (i == 0):
+                costMap[i][j] = horizontalCost
+                continue
+            leftBound = j - window if (j - window > 0) else 0
+            rightBound = j + window if (j + window < row.shape[0]) else row.shape[0]
+            verticalCost = np.sum(verticalGradients[i-1][leftBound:rightBound]) + np.sum(DRGradients[i-1][leftBound:rightBound])
+            costMap[i][j] = verticalCost + horizontalCost
     return costMap
 
 def retarget_video(video, width, height):
@@ -223,6 +283,19 @@ def retarget_video(video, width, height):
 
             pass
 
+# Weights is tuple of (SC:TC:S)
+def getPixelMeasures(frame, spatialWindow, weights, previousSeam=None):
+    spatialWeight, temporalWeight, saliencyWeight = weights / np.sum(weights)
+    spatialMap = compute_spatial_coherence_cost(frame, spatialWindow)
+    spatialMap = spatialMap / np.max(spatialMap) * spatialWeight
+    saliency = saliency_map(frame)
+    saliency = saliency / np.max(saliency) * saliencyWeight
+    if (previousSeam == None):
+        return spatialMap + saliency
+    temporalMap = compute_temporal_coherence_cost(frame, previousSeam)
+    temporalMap = temporalMap / np.max(temporalMap) * temporalWeight
+    return (spatialMap + saliency + temporalMap) * 255
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Retargets a video to specified size")
     parser.add_argument('--video', type=str, help='The path to the video to retarget')
@@ -256,14 +329,18 @@ if __name__ == '__main__':
     #print("INFO: Saving New Image")
     #cv2.imwrite("temporal_map_demo.jpg", temporal_map.astype(np.uint8))
 
+    print("INFO: Calculating Merged Maps")
+    costMap = getPixelMeasures(video[121], 15, (5, 1, 2), min_seam)
+    cv2.imwrite("cost_map_demo.jpg", costMap)
+
     print("INFO: Calculating Seams from Temporal Cost")
-    seam2, energies2 = carve_seams(saliency_frame)
+    seam2, energies2 = carve_seams_piecewise(costMap, 3)
     min_index2 = np.where(energies2 == np.amin(energies2))[0][::-1]
     min_index2 = min_index2[0] 
     min_seam2 = seam2[min_index]
 
     mask2 = highlight_seam(video[121], min_seam2)
     print("INFO: Saving New Image")
-    cv2.imwrite("temporal_seam_demo.jpg", mask2)
+    cv2.imwrite("cost_seam_demo.jpg", mask2)
 
     #write_video(video, args.out)
