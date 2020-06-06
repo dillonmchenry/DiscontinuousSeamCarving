@@ -3,6 +3,7 @@ import numpy as np
 import argparse
 import imageio as img
 import seam
+import spatial_coherence
 
 # ------------Things to Implement-------------------
 
