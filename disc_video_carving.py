@@ -163,10 +163,12 @@ def highlight_seam(frame, seam):
 def compute_temporal_coherence_cost_pixel(currentFrame, previousSeam, x, y):
     seamX = previousSeam[y][1]
     cost = 0
+    print("RANGE: ", min(x, seamX), max(x, seamX))
     for i in range(min(x, seamX), max(x, seamX)):
         channels1 = np.linalg.norm(currentFrame[y][i])
         channels2 = np.linalg.norm(currentFrame[y][i+1])
         cost += abs(channels1 - channels2)
+    #print("COST: ", cost)
     return cost
 
 def compute_temporal_coherence_cost(currentFrame, previousSeam):
@@ -175,6 +177,24 @@ def compute_temporal_coherence_cost(currentFrame, previousSeam):
         costMap.append([])
         for j in range(0, currentFrame.shape[1]):
             costMap[i].append(compute_temporal_coherence_cost_pixel(currentFrame, previousSeam, j, i))
+    return costMap
+
+def compute_temporal_coherence_cost2(currentFrame, previousSeam):
+    costMap = []
+    for i in range(0, currentFrame.shape[0]):
+        costMap.append([])
+        rowCost = []
+        for j in range(0, previousSeam[i][0]):
+            channels1 = np.linalg.norm(currentFrame[i][j])
+            channels2 = np.linalg.norm(currentFrame[i][j+1])
+            rowCost.append(abs(channels1 - channels2))
+        rowCost.append(0)
+        for j in range(previousSeam[i][0] + 1, currentFrame.shape[1]):
+            channels1 = np.linalg.norm(currentFrame[i][j-1])
+            channels2 = np.linalg.norm(currentFrame[i][j])
+            rowCost.append(abs(channels1 - channels2))
+        for j in range(0, currentFrame.shape[1]):
+            costMap[0].append(np.sum(rowCost[min(j, previousSeam[i][0]):max(j, previousSeam[i][0])]))
     return costMap
 
 def compute_spatial_coherence_cost_pixel(row, rowAbove, x, y):
@@ -200,8 +220,8 @@ if __name__ == '__main__':
 
     print("INFO: Reading Video: ", args.video)
     video = read_video(args.video)
-
     print("INFO: Finished Reading Video")
+
     print("INFO: Calculating Saliency Map")
     saliency_frame = saliency_map(video[120])
 
@@ -209,13 +229,26 @@ if __name__ == '__main__':
     seam, energies = carve_seams(saliency_frame)
     print("INFO: Finished Calculating Seams")
     min_index = np.where(energies == np.amin(energies))[0][::-1]
-    print(min_index)
     min_index = min_index[0] 
-    print(min_index)
     min_seam = seam[min_index]
-    mask = highlight_seam(video[120], min_seam)
 
-    vis2 = visualize(mask)
-    cv2.imwrite("seam_demo.jpg", vis2)
+    mask = highlight_seam(video[120], min_seam)
+    print("INFO: Saving New Image")
+    cv2.imwrite("saliency_seam_demo.jpg", mask)
+
+    print("INFO: Calculating Temporal Cost to Next Frame")
+    temporal_map = compute_temporal_coherence_cost2(video[121], min_seam)
+    #print("INFO: Saving New Image")
+    #cv2.imwrite("temporal_map_demo.jpg", temporal_map.astype(np.uint8))
+
+    print("INFO: Calculating Seams from Temporal Cost")
+    seam2, energies2 = carve_seams(saliency_frame)
+    min_index2 = np.where(energies2 == np.amin(energies2))[0][::-1]
+    min_index2 = min_index2[0] 
+    min_seam2 = seam2[min_index]
+
+    mask2 = highlight_seam(video[121], min_seam2)
+    print("INFO: Saving New Image")
+    cv2.imwrite("temporal_seam_demo.jpg", mask2)
 
     #write_video(video, args.out)
