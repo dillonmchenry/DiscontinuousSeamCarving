@@ -176,20 +176,8 @@ def compute_temporal_coherence_cost(currentFrame, previousSeam):
             channels2 = np.linalg.norm(currentFrame[i][j - 1])
             cumulativeCost += abs(channels1 - channels2)
             costMap[i][j] = cumulativeCost
+            
     return costMap
-
-
-def compute_spatial_coherence_cost_pixel(row, rowAbove, x, y):
-    # If border pixel
-    horizontalCost = 0
-    if x == 0:
-        horizontalCost = abs(abs(row[y][x] - row[y][x+1]) - abs(row[y][x+1] - row[y][x+2]))
-    elif x == row.shape[0]:
-        horizontalCost = abs(abs(row[y][x] - row[y][x-1]) - abs(row[y][x-1] - row[y][x-2]))
-    else:
-        horizontalCost = abs(row[y][x-1]-row[y][x]) + abs(row[y][x]-row[y][x+1]) - abs(row[y][x-1]-row[y][x+1])
-
-    return None
 
 def retarget_video(video, width, height):
     widthDif = video.shape[2] - width
@@ -262,7 +250,9 @@ if __name__ == '__main__':
     cv2.imwrite("saliency_seam_demo.jpg", mask)
 
     print("INFO: Calculating Temporal Cost to Next Frame")
-    temporal_map3 = compute_temporal_coherence_cost(video[121], min_seam)
+    temporal_map = compute_temporal_coherence_cost(video[121], min_seam)
+    temporal_map = temporal_map / np.max(temporal_map) * 255
+    cv2.imwrite("temporal_demo.jpg", temporal_map)
     #print("INFO: Saving New Image")
     #cv2.imwrite("temporal_map_demo.jpg", temporal_map.astype(np.uint8))
 
