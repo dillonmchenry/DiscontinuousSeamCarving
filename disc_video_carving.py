@@ -3,6 +3,7 @@ import imageio
 import numpy as np
 import argparse
 import imageio as img
+from numba import jit
 
 import seam
 import spatial_coherence
@@ -152,6 +153,7 @@ def highlight_seam(frame, seam):
         new_frame[pixel[0], pixel[1]] = [255, 180, 180]
     return new_frame
 
+@jit(nopython=True)
 def compute_temporal_coherence_cost(currentFrame, previousSeam):
     costMap = []
     for i in range(0, currentFrame.shape[0]):

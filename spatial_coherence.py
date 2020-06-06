@@ -114,6 +114,7 @@ def compute_spatial_coherence_cost2(frame, window):
 
     return cost_map
 
+@jit(nopython=True)
 def compute_spatial_coherence_cost(frame, window):
     #Precompute vertical gradients
     height, width = frame.shape[:2]
