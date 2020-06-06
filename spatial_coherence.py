@@ -8,11 +8,10 @@ import disc_video_carving
 def calculate_transition_cost(xa, x, row, rowAbove):
     sum = 0
     for j in range(xa, x):
-        gradient = abs(abs(row[j] - rowAbove[j]) - abs(row[j] - rowAbove[j + 1]))
-        if j < x:
-            sum += gradient
-        if j > xa:
-            sum += gradient
+        if j < x: # left side
+            sum += abs(abs(row[j] - rowAbove[j]) - abs(row[j] - rowAbove[j + 1]))
+        if j > xa: # right side
+            sum += abs(abs(row[j] - rowAbove[j]) - abs(row[j] - rowAbove[j - 1]))
 
 def compute_spatial_coherence_cost_pixel(row, rowAbove, x, y, window):
     horizontalCost = 0
@@ -65,7 +64,9 @@ def compute_spatial_coherence_cost2(frame, window):
     gray_scale = np.asarray(gray_scale, dtype=int)
 
     for y in range(0, height):
-        gradients = []
+        gradientsV = []
+        gradientsDR = []
+        gradientsDL = []
         for x in range(0, width):
             row = gray_scale[y]
             rowAbove = gray_scale[y - 1]
@@ -80,35 +81,37 @@ def compute_spatial_coherence_cost2(frame, window):
                 horizontalCost = abs(abs(row[x] - row[x - 1]) - abs(row[x - 1] - row[x - 2]))
             # Internal Pixel
             else:
-                horizontalCost = abs(row[x - 1] - row[x]) + abs(row[x] - row[x + 1]) - abs(
-                    row[x - 1] - row[x + 1])
+                horizontalCost = abs(row[x - 1] - row[x]) + abs(row[x] - row[x + 1]) - abs(row[x - 1] - row[x + 1])
 
             # ----------------------Vertical Cost---------------------------------
+            if y > 0:
+                if len(gradientsV) == 0:
+                    # calculates and sums transition for all pixels in window radius
+                    for i in range(window):
+                        gradientsV.append(abs(row[i] - rowAbove[i]))
+                        gradientsDL.append(abs(row[i + 1] - rowAbove[i]))
+                    gradientsV.append(abs(row[window] - rowAbove[window]))
 
-            left_bound = window
-            right_bound = window
+                leftBound = x if x < window else window
+                rightBound = window + leftBound if x + window < width else window + leftBound + (width - (x + window))
+                verticalCost = abs(sum(gradientsV[0:leftBound]) - sum(gradientsDR)) * 2 + abs(sum(gradientsV[leftBound:rightBound]) - sum(gradientsDL)) * 2
+                if x != 0:
+                    verticalCost -= gradientsV[0]
+                if x != width - 1:
+                    verticalCost -= gradientsV[len(gradientsV) - 1]
 
-            # checks left boundary
-            if x < window:
-                left_bound -= window - x
-            # checks right boundary
-            elif x + window > len(row) - 1:
-                right_bound -= x + window - len(row)
+                verticalCost = abs(verticalCost)
 
-            if not gradients:
-                # calculates and sums transition for all pixels in window radius
-                for i in range(-left_bound, right_bound + 1):
-                    xa = x + i
-                    gradients.append(calculate_transition_cost(xa, x, row, rowAbove))
-
-            else:
-                # Checks for boundary cases
-                if left_bound >= window:
-                    gradients.pop()
-                if right_bound < window:
-                    gradients.append(calculate_transition_cost(right_bound, x, row, rowAbove))
-
-            verticalCost = sum(gradients)
+                if x < width - 1:
+                    gradientsDR.append(abs(row[x] - rowAbove[x + 1]))
+                    gradientsDL.pop(0)
+                if x > window:
+                    gradientsV.pop(0)
+                    gradientsDR.pop(0)
+                if x + window < width:
+                    gradientsV.append(abs(row[x + window] - rowAbove[x + window]))
+                if x + window < width - 1:
+                    gradientsDL.append(abs(row[x + window + 1] - rowAbove[x + window]))
 
             cost_map[y][x] = verticalCost + horizontalCost
 
@@ -153,4 +156,9 @@ if __name__ == '__main__':
     spatial_map2 = compute_spatial_coherence_cost(frame, 10)
     spatial_map2 = spatial_map2 / np.max(spatial_map2) * 255
     cv2.imwrite("bowser_spatial_demo.jpg", spatial_map2)
+
+    im = imageio.imread('lawn_mower.jpg')
+    spatial_map = compute_spatial_coherence_cost(im, 10)
+    spatial_map = spatial_map / np.max(spatial_map) * 255
+    cv2.imwrite("spatial_demo.jpg", spatial_map)
 
