@@ -157,45 +157,25 @@ def highlight_seam(frame, seam):
         new_frame[pixel[0], pixel[1]] = [255, 180, 180]
     return new_frame
 
-# currentFrame = numpy array
-# previousSeam = numpy array of pairs of points
-# x, y = point to compute in the current frame
-def compute_temporal_coherence_cost_pixel(currentFrame, previousSeam, x, y):
-    seamX = previousSeam[y][1]
-    cost = 0
-    print("RANGE: ", min(x, seamX), max(x, seamX))
-    for i in range(min(x, seamX), max(x, seamX)):
-        channels1 = np.linalg.norm(currentFrame[y][i])
-        channels2 = np.linalg.norm(currentFrame[y][i+1])
-        cost += abs(channels1 - channels2)
-    #print("COST: ", cost)
-    return cost
-
 def compute_temporal_coherence_cost(currentFrame, previousSeam):
     costMap = []
     for i in range(0, currentFrame.shape[0]):
-        costMap.append([])
-        for j in range(0, currentFrame.shape[1]):
-            costMap[i].append(compute_temporal_coherence_cost_pixel(currentFrame, previousSeam, j, i))
+        costMap.append([0 for x in range(currentFrame.shape[1])])
+        cumulativeCost = 0
+        for j in range(previousSeam[i][1]-1, -1, -1):
+            channels1 = np.linalg.norm(currentFrame[i][j])
+            channels2 = np.linalg.norm(currentFrame[i][j + 1])
+            cumulativeCost += abs(channels1 - channels2)
+            costMap[i][j] = cumulativeCost
+        cumulativeCost = 0
+        costMap[i][previousSeam[i][1]] = 0
+        for j in range(previousSeam[i][1]+1, currentFrame.shape[1]):
+            channels1 = np.linalg.norm(currentFrame[i][j])
+            channels2 = np.linalg.norm(currentFrame[i][j - 1])
+            cumulativeCost += abs(channels1 - channels2)
+            costMap[i][j] = cumulativeCost
     return costMap
 
-def compute_temporal_coherence_cost2(currentFrame, previousSeam):
-    costMap = []
-    for i in range(0, currentFrame.shape[0]):
-        costMap.append([])
-        rowCost = []
-        for j in range(0, previousSeam[i][0]):
-            channels1 = np.linalg.norm(currentFrame[i][j])
-            channels2 = np.linalg.norm(currentFrame[i][j+1])
-            rowCost.append(abs(channels1 - channels2))
-        rowCost.append(0)
-        for j in range(previousSeam[i][0] + 1, currentFrame.shape[1]):
-            channels1 = np.linalg.norm(currentFrame[i][j-1])
-            channels2 = np.linalg.norm(currentFrame[i][j])
-            rowCost.append(abs(channels1 - channels2))
-        for j in range(0, currentFrame.shape[1]):
-            costMap[0].append(np.sum(rowCost[min(j, previousSeam[i][0]):max(j, previousSeam[i][0])]))
-    return costMap
 
 def compute_spatial_coherence_cost_pixel(row, rowAbove, x, y):
     # If border pixel
@@ -209,6 +189,49 @@ def compute_spatial_coherence_cost_pixel(row, rowAbove, x, y):
 
     return None
 
+def retarget_video(video, width, height):
+    widthDif = video.shape[2] - width
+    heightDif = video.shape[1] - height
+    # Shrink first
+    if (widthDif > 0):
+        pass
+    if (heightDif > 0):
+        pass
+
+    # Then expand
+    if (widthDif < 0):
+        pass
+
+    if (heightDif < 0):
+        pass
+
+    newVideo = []
+    for i in range(0, abs(widthDif) + abs(heightDif)):
+        for j in range(0, video.shape[0]):
+            verticalSeams, verticalEnergies = carve_seams(video[j])
+            minVerticalSeam, minVerticalEnergy = seam.get_n_seams(verticalSeams, verticalEnergies, 1)
+
+            horizontalSeams, horizontalEnergies = seam.carve_seams(video[j].T)
+            minHorizontalSeam, minHorizontalEnergy = seam.get_n_seams(horizontalSeams, horizontalEnergies, 1)
+            if (minVerticalEnergy < minHorizontalEnergy):
+                # Do vertical seam
+                if (widthDif > 0):
+                    # Shrinking horizontally
+                    pass
+
+                else:
+                    # Expanding horizontally
+                    pass
+                # Remove vertical seam from frame by copying over elements from current frame
+            else:
+                if (heightDif > 0):
+                    # Shrinking vertically
+                    pass
+                else:
+                    # Expanding vertically
+                    pass
+
+            pass
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Retargets a video to specified size")
@@ -237,7 +260,7 @@ if __name__ == '__main__':
     cv2.imwrite("saliency_seam_demo.jpg", mask)
 
     print("INFO: Calculating Temporal Cost to Next Frame")
-    temporal_map = compute_temporal_coherence_cost2(video[121], min_seam)
+    temporal_map3 = compute_temporal_coherence_cost(video[121], min_seam)
     #print("INFO: Saving New Image")
     #cv2.imwrite("temporal_map_demo.jpg", temporal_map.astype(np.uint8))
 
