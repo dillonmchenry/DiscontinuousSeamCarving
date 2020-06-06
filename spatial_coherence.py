@@ -3,7 +3,6 @@ import imageio
 import numpy as np
 
 
-
 def compute_spatial_coherence_cost_pixel(row, rowAbove, x, y, window):
     horizontalCost = 0
     verticalCost = 0
@@ -55,7 +54,7 @@ def compute_spatial_coherence_cost(frame, window):
     gray_scale = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
     gray_scale = np.asarray(gray_scale, dtype=int)
 
-    for i in range(1, height):
+    for i in range(0, height):
         for j in range(0, width):
             cost_map[i][j] = compute_spatial_coherence_cost_pixel(gray_scale[i], gray_scale[i - 1], j, i, window)
 
