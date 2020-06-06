@@ -53,6 +53,7 @@ def compute_spatial_coherence_cost(frame, window):
     height, width = frame.shape[:2]
     cost_map = np.zeros((height, width))
     gray_scale = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+    gray_scale = np.asarray(gray_scale, dtype=int)
 
     for i in range(1, height):
         for j in range(0, width):
