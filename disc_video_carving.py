@@ -1,8 +1,10 @@
 import cv2
+import imageio
 import numpy as np
 import argparse
 import imageio as img
 import seam
+import spatial_coherence
 
 # ------------Things to Implement-------------------
 
@@ -235,6 +237,9 @@ if __name__ == '__main__':
     mask = highlight_seam(video[120], min_seam)
     print("INFO: Saving New Image")
     cv2.imwrite("saliency_seam_demo.jpg", mask)
+
+    print("INFO: Calculating Spatial Cost in Next Frame")
+    print(spatial_map)
 
     print("INFO: Calculating Temporal Cost to Next Frame")
     temporal_map = compute_temporal_coherence_cost2(video[121], min_seam)

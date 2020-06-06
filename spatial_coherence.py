@@ -1,5 +1,6 @@
 import cv2
-from numpy import np
+import imageio
+import numpy as np
 
 
 # Sum of different in gradients both diagonal and vertical
@@ -17,13 +18,13 @@ def compute_spatial_coherence_cost_pixel(row, rowAbove, x, y, window):
 
     # Border Cases
     if x == 0:
-        horizontalCost = abs(abs(row[y][x] - row[y][x + 1]) - abs(row[y][x + 1] - row[y][x + 2]))
-    elif x == row.shape[0]:
-        horizontalCost = abs(abs(row[y][x] - row[y][x - 1]) - abs(row[y][x - 1] - row[y][x - 2]))
+        horizontalCost = abs(abs(row[x] - row[x + 1]) - abs(row[x + 1] - row[x + 2]))
+    elif x == row.shape[0] - 1:
+        horizontalCost = abs(abs(row[x] - row[x - 1]) - abs(row[x - 1] - row[x - 2]))
     # Internal Pixel
     else:
-        horizontalCost = abs(row[y][x - 1] - row[y][x]) + abs(row[y][x] - row[y][x + 1]) - abs(
-            row[y][x - 1] - row[y][x + 1])
+        horizontalCost = abs(row[x - 1] - row[x]) + abs(row[x] - row[x + 1]) - abs(
+            row[x - 1] - row[x + 1])
 
     # ----------------------Vertical Cost---------------------------------
     sum1 = 0
@@ -43,7 +44,9 @@ def compute_spatial_coherence_cost_pixel(row, rowAbove, x, y, window):
             sum1 += calc_sum(x, xa - 1, row, rowAbove)
             sum2 += calc_sum(x + 1, xa, row, rowAbove)
 
-    return sum1 + sum2
+    verticalCost = sum1 + sum2
+
+    return horizontalCost + verticalCost
 
 
 def compute_spatial_coherence_cost(frame, window):
@@ -53,10 +56,11 @@ def compute_spatial_coherence_cost(frame, window):
 
     for i in range(1, height):
         for j in range(0, width):
-            cost_map[i][j] = compute_spatial_coherence_cost_pixel(frame[i], frame[i - 1], j, i, window)
+            cost_map[i][j] = compute_spatial_coherence_cost_pixel(gray_scale[i], gray_scale[i - 1], j, i, window)
 
     return cost_map
 
 
 if __name__ == '__main__':
-    print("hi")
+    im = imageio.imread('lawn_mower.jpg')
+    print(compute_spatial_coherence_cost(im, 10))
