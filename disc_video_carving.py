@@ -194,7 +194,7 @@ def compute_temporal_coherence_cost2(currentFrame, previousSeam):
             channels2 = np.linalg.norm(currentFrame[i][j])
             rowCost.append(abs(channels1 - channels2))
         for j in range(0, currentFrame.shape[1]):
-            costMap[0].append(np.sum(rowCost[min(j, previousSeam[i][0]):max(j, previousSeam[i][0])]))
+            costMap[i].append(np.sum(rowCost[min(j, previousSeam[i][0]):max(j, previousSeam[i][0])]))
     return costMap
 
 def compute_spatial_coherence_cost_pixel(row, rowAbove, x, y):
