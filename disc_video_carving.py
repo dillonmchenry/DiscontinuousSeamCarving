@@ -41,8 +41,8 @@ def read_video(name):
     return video
 
 
-def write_video(video, name):
-    out = cv2.VideoWriter(name, cv2.VideoWriter_fourcc('m','p','4','v'), 30.0, (1920, 1080))
+def write_video(video, name, width, height):
+    out = cv2.VideoWriter(name, cv2.VideoWriter_fourcc('m','p','4','v'), 30.0, (width, height))
 
     for frame in video:
         # write the flipped frame
@@ -68,7 +68,6 @@ def visualize(im, boolmask=None, rotate=False):
     #cv2.waitKey(1)
     return vis
 
-#@jit
 def saliency_map(gray_scale):
     height, width = gray_scale.shape[:2]
 
@@ -185,10 +184,10 @@ def retarget_video(videoIn, width, height, window, weights):
                 # del seam
                 # del energies
                 # del min_index
-                # del video[j]
-                video.insert(j, new_frame.tolist())
-                gc.collect()
+                del video[j]
+                video.insert(j, new_frame)
                 # del new_frame
+            write_video(video, "videos/temp" + str(i) + ".mp4", len(video[0][0]), len(video[0]))
     if (heightDif > 0):
         pass
 
