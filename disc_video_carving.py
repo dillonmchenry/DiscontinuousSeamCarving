@@ -159,7 +159,7 @@ def compute_temporal_coherence_cost(currentFrame, previousSeam):
             cumulativeCost += np.absolute(currentFrame[i][j] - currentFrame[i][j - 1])
             costMap[i][j] = cumulativeCost
             
-    return costMap
+    return np.array(costMap, dtype=np.float64)
 
 def retarget_video(videoIn, width, height, window, weights):
     video = videoIn.copy()
@@ -175,12 +175,15 @@ def retarget_video(videoIn, width, height, window, weights):
                 print("Current Frame: ", j+1)
                 currentFrame = np.array(video[j])
                 costMap = getPixelMeasures(currentFrame, window, weights, min_seam)
+                cv2.imwrite("images/temp_costmap_" + str(i) + "." + str(j) + ".jpg", costMap)
                 # del min_seam
                 seam, energies = carve_seams_piecewise(costMap, window)
-                min_index = np.where(energies[-1] == np.amin(energies[-1]))[0]
+                min_index = np.where(energies[-1] == np.amin(energies[-1]))[0][::-1]
                 min_index = min_index[0]
                 min_seam = np.array(get_seam(seam, min_index))
                 new_frame = remove_seam(currentFrame, seam, min_index)
+                mask = highlight_seam(currentFrame, min_seam)
+                cv2.imwrite("images/temp_seam_" + str(i) + "." + str(j) + ".jpg", mask)
                 # del seam
                 # del energies
                 # del min_index
@@ -206,14 +209,14 @@ def getPixelMeasures(frameIn, spatialWindow, weights, previousSeam=None):
     frame = np.asarray(frame, dtype=int)
     spatialWeight, temporalWeight, saliencyWeight = weights / np.sum(weights)
     spatialMap = spatial_coherence.compute_spatial_coherence_cost(frame, spatialWindow)
-    spatialMap = spatialMap / np.max(spatialMap) * spatialWeight
+    spatialMap = spatialMap * spatialWeight
     saliency = saliency_map(frame)
-    saliency = saliency / np.max(saliency) * saliencyWeight
+    saliency = saliency * saliencyWeight
     if (previousSeam is None):
-        return (spatialMap + saliency) * 255
+        return (spatialMap + saliency) / np.max(spatialMap + saliency) * 255
     temporalMap = compute_temporal_coherence_cost(frame, previousSeam)
-    temporalMap = temporalMap / np.max(temporalMap) * temporalWeight
-    return (spatialMap + saliency + temporalMap) * 255
+    temporalMap = temporalMap * temporalWeight
+    return (spatialMap + saliency + temporalMap) / np.max(spatialMap + saliency + temporalMap) * 255
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Retargets a video to specified size")
@@ -222,9 +225,9 @@ if __name__ == '__main__':
     parser.add_argument('--height', type=int, help='Height to retarget video to')
     parser.add_argument('--out', type=str, help='The path to store the output to')
     parser.add_argument('--window', type=int, help='Window for piecewise seams', default=10)
-    parser.add_argument('--saliencyW', type=int, help='Saliency Weight in seam carving', default=2)
-    parser.add_argument('--spatialW', type=int, help='Spatial Weight in seam carving', default=5)
-    parser.add_argument('--temporalW', type=int, help='Temporal Weight in seaming carving', default=1)
+    parser.add_argument('--saliencyW', type=float, help='Saliency Weight in seam carving', default=2)
+    parser.add_argument('--spatialW', type=float, help='Spatial Weight in seam carving', default=5)
+    parser.add_argument('--temporalW', type=float, help='Temporal Weight in seaming carving', default=1)
 
 
     args = parser.parse_args()
@@ -232,7 +235,7 @@ if __name__ == '__main__':
     print("INFO: Reading Video: ", args.video)
     video = read_video(args.video)
     print("INFO: Finished Reading Video")
-    newVideo = retarget_video(video, args.width, args.height, args.window, (args.saliencyW, args.spatialW, args.temporalW))
+    newVideo = retarget_video(video, args.width, args.height, args.window, (args.spatialW, args.temporalW, args.saliencyW))
     print("INFO: Writing Output Video")
     write_video(newVideo, args.out)
 
