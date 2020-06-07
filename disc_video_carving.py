@@ -121,8 +121,21 @@ def get_seam(seams, n):
     for i in reversed(range(seams.shape[0])):
         seam.append([i, n])
         n = seams[i, n]
-
     return seam
+
+def get_n_seams(seams, energies, n):
+    newSeams = []
+    modifiedEnergies = energies[-1].copy()
+    newEnergies = []
+    if (energies.shape[0] < n):
+        raise Exception("Cannot get " + str(n) + " seams. Only " + energies.shape[0] + " exist")
+    maxEnergy = np.max(energies)
+    for i in range(0, n):
+        minIndex = np.where(modifiedEnergies == np.min(modifiedEnergies))[0][0]
+        modifiedEnergies[minIndex] = maxEnergy + 1
+        newSeams.append(get_seam(seams, minIndex))
+        newEnergies.append(energies[-1][minIndex])
+    return (newSeams, newEnergies)
 
 def remove_seam(frame, seams, n):
     mask = [[[1 for x in range(3)] for j in range(frame.shape[1])] for i in range(frame.shape[0])]
@@ -133,6 +146,22 @@ def remove_seam(frame, seams, n):
     new_frame = frame[mask].reshape((frame.shape[0], frame.shape[1]-1, 3))
     return new_frame
 
+def add_seams(frame, seams):
+    # new_frame = [[frame[i][j] for j in range(frame.shape[1])] for i in range(frame.shape[0])]
+    # for seam in seams:
+    #     for point in seam:
+    #         new_frame[point[1]].insert(point[0], frame[point[1]][point[0]])
+    #
+    # new_frame = np.array(new_frame)
+    # return new_frame
+    frameCopy = frame.copy()
+    new_frame = np.zeros((frame.shape[0], frame.shape[1], frame.shape[2]))
+    for seam in seams:
+        new_frame = np.zeros((new_frame.shape[0], new_frame.shape[1] + 1, new_frame.shape[2]))
+        for point in seam:
+            new_frame[point[1]] = np.concatenate([frameCopy[point[1]][0:point[0]], np.array([frameCopy[point[1]][point[0]]]), frameCopy[point[1]][point[0]:]])
+        frameCopy = new_frame
+    return new_frame
 
 def highlight_seam(frame, seam):
     new_frame = frame.copy()
@@ -193,7 +222,7 @@ def retarget_video(videoIn, width, height, window, weights):
             for j in range(0, len(video)):
                 print("Current Frame: ", j+1)
                 currentFrame = np.array(video[j])
-                currentFrame = currentFrame.T
+                currentFrame = np.transpose(currentFrame, axes=(1, 0, 2))
                 costMap = getPixelMeasures(currentFrame, window, weights, min_seam)
                 cv2.imwrite("images/temp_costmap_horiz" + str(i) + "." + str(j) + ".jpg", costMap)
                 seam, energies = carve_seams_piecewise(costMap, window)
@@ -201,7 +230,7 @@ def retarget_video(videoIn, width, height, window, weights):
                 min_index = min_index[0]
                 min_seam = np.array(get_seam(seam, min_index))
                 new_frame = remove_seam(currentFrame, seam, min_index)
-                new_frame = new_frame.T
+                new_frame = np.transpose(new_frame, axes=(1, 0, 2))
                 mask = highlight_seam(currentFrame, min_seam)
                 cv2.imwrite("images/temp_seam_horizo" + str(i) + "." + str(j) + ".jpg", mask)
                 del video[j]
@@ -209,7 +238,23 @@ def retarget_video(videoIn, width, height, window, weights):
             write_video(video, "videos/temp_horiz" + str(i) + ".mp4", len(video[0][0]), len(video[0]))
     # Then expand
     if (widthDif < 0):
-        pass
+        min_seam = None
+        for j in range(0, len(video)):
+            print("Current Frame: ", j+1)
+            currentFrame = np.array(video[j])
+            costMap = getPixelMeasures(currentFrame, window, weights, min_seam)
+            cv2.imwrite("images/temp_costmap_expand" + str(j) + ".jpg", costMap)
+            seam, energies = carve_seams_piecewise(costMap, window)
+            newSeams, newEnergies = get_n_seams(seam, energies, abs(widthDif))
+            min_index = np.where(energies[-1] == np.amin(energies[-1]))[0][::-1]
+            min_index = min_index[0]
+            min_seam = np.array(get_seam(seam, min_index))
+            new_frame = add_seams(currentFrame, newSeams)
+            mask = highlight_seam(currentFrame, min_seam)
+            cv2.imwrite("images/temp_seam_expand" + str(j) + ".jpg", mask)
+            del video[j]
+            video.insert(j, new_frame)
+            gc.collect()
 
     if (heightDif < 0):
         pass
