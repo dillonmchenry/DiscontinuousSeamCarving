@@ -160,7 +160,7 @@ def add_seams(frame, seams):
         new_frame = np.zeros((new_frame.shape[0], new_frame.shape[1] + 1, new_frame.shape[2]))
         for point in seam:
             new_frame[point[1]] = np.concatenate([frameCopy[point[1]][0:point[0]], np.array([frameCopy[point[1]][point[0]]]), frameCopy[point[1]][point[0]:]])
-        frameCopy = new_frame
+        frameCopy = new_frame.copy()
     return new_frame
 
 def highlight_seam(frame, seam):
