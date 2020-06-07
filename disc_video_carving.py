@@ -110,7 +110,7 @@ def carve_seams_piecewise(frame, width):
 
             min_energy = np.amin(energies[y-1][leftBound:rightBound])
             min_indexes = np.where(energies[y-1][leftBound:rightBound] == min_energy)[0]
-            seams[y][x] = leftBound + min_indexes[x % min_indexes.shape[0]]
+            seams[y][x] = leftBound + min_indexes[0]
 
             energies[y][x] += min_energy
 
@@ -227,7 +227,7 @@ if __name__ == '__main__':
     parser.add_argument('--window', type=int, help='Window for piecewise seams', default=10)
     parser.add_argument('--saliencyW', type=float, help='Saliency Weight in seam carving', default=2)
     parser.add_argument('--spatialW', type=float, help='Spatial Weight in seam carving', default=5)
-    parser.add_argument('--temporalW', type=float, help='Temporal Weight in seaming carving', default=1)
+    parser.add_argument('--temporalW', type=float, help='Temporal Weight in seaming carving', default=0.5)
 
 
     args = parser.parse_args()
@@ -237,7 +237,7 @@ if __name__ == '__main__':
     print("INFO: Finished Reading Video")
     newVideo = retarget_video(video, args.width, args.height, args.window, (args.spatialW, args.temporalW, args.saliencyW))
     print("INFO: Writing Output Video")
-    write_video(newVideo, args.out)
+    write_video(newVideo, args.out, args.width, args.height)
 
     #
     # print("INFO: Calculating Saliency Map")
