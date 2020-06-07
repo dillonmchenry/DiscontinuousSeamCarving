@@ -176,7 +176,6 @@ def retarget_video(videoIn, width, height, window, weights):
                 currentFrame = np.array(video[j])
                 costMap = getPixelMeasures(currentFrame, window, weights, min_seam)
                 cv2.imwrite("images/temp_costmap_" + str(i) + "." + str(j) + ".jpg", costMap)
-                # del min_seam
                 seam, energies = carve_seams_piecewise(costMap, window)
                 min_index = np.where(energies[-1] == np.amin(energies[-1]))[0][::-1]
                 min_index = min_index[0]
@@ -184,16 +183,30 @@ def retarget_video(videoIn, width, height, window, weights):
                 new_frame = remove_seam(currentFrame, seam, min_index)
                 mask = highlight_seam(currentFrame, min_seam)
                 cv2.imwrite("images/temp_seam_" + str(i) + "." + str(j) + ".jpg", mask)
-                # del seam
-                # del energies
-                # del min_index
                 del video[j]
                 video.insert(j, new_frame)
-                # del new_frame
             write_video(video, "videos/temp" + str(i) + ".mp4", len(video[0][0]), len(video[0]))
     if (heightDif > 0):
-        pass
-
+        for i in range(0, heightDif):
+            print("Current Seam: ", i + 1)
+            min_seam = None
+            for j in range(0, len(video)):
+                print("Current Frame: ", j+1)
+                currentFrame = np.array(video[j])
+                currentFrame = currentFrame.T
+                costMap = getPixelMeasures(currentFrame, window, weights, min_seam)
+                cv2.imwrite("images/temp_costmap_horiz" + str(i) + "." + str(j) + ".jpg", costMap)
+                seam, energies = carve_seams_piecewise(costMap, window)
+                min_index = np.where(energies[-1] == np.amin(energies[-1]))[0][::-1]
+                min_index = min_index[0]
+                min_seam = np.array(get_seam(seam, min_index))
+                new_frame = remove_seam(currentFrame, seam, min_index)
+                new_frame = new_frame.T
+                mask = highlight_seam(currentFrame, min_seam)
+                cv2.imwrite("images/temp_seam_horizo" + str(i) + "." + str(j) + ".jpg", mask)
+                del video[j]
+                video.insert(j, new_frame)
+            write_video(video, "videos/temp_horiz" + str(i) + ".mp4", len(video[0][0]), len(video[0]))
     # Then expand
     if (widthDif < 0):
         pass
