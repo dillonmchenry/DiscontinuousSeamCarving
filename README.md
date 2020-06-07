@@ -9,21 +9,22 @@ Install the following dependencies to run the program. PIP is recommended
 
 ## Running the program
 
+Any video can be resized, but we have provided some in this repository (alongside example execution below).
+
 Here are a list of the parameters needed for the program to run
 | Arg     | Description | Default Value  |
 | ------- | ----------- | -------------- |
-| --video | Test        | None: Required |
- 
-    parser.add_argument('--video', type=str, help='The path to the video to retarget')
-    parser.add_argument('--width', type=int, help='Width to retarget video to')
-    parser.add_argument('--height', type=int, help='Height to retarget video to')
-    parser.add_argument('--out', type=str, help='The path to store the output to')
-    parser.add_argument('--window', type=int, help='Window for piecewise seams', default=10)
-    parser.add_argument('--saliencyW', type=float, help='Saliency Weight in seam carving', default=2)
-    parser.add_argument('--spatialW', type=float, help='Spatial Weight in seam carving', default=5)
-    parser.add_argument('--temporalW', type=float, help='Temporal Weight in seaming carving', default=0.5)
+| --video | Video to read in to program        | None: Required |
+| --width | Width to retarget to        | None: Required |
+| --height | Height to retarget to | None: Required |
+| --out   | Output video name | None: Required |
+| --window | Window that determines how far apart piecewise spatial seams can be | 10 |
+| --saliencyW | Weight for saliency measure | 2 |
+| --spatialW | Weight for spatial measure | 5 |
+| --temporalW | Weight for temporal measure | 0.5 |
 
-
-The disc_video file is our project, the other PY is a reference to the image method implemented.
-
-Right now I just have video I/O and a list of tasks for us.
+### Example execution
+This will resize a provided video from 720x480 to 660x420
+```
+python disc_video_carving.py --video spacex_launch480.m4v --window 5 --width 660 --height 420 --out spacex_launch_retargeted_both.mp4
+```
