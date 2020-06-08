@@ -147,21 +147,21 @@ def remove_seam(frame, seams, n):
     return new_frame
 
 def add_seams(frame, seams):
-    # new_frame = [[frame[i][j] for j in range(frame.shape[1])] for i in range(frame.shape[0])]
-    # for seam in seams:
-    #     for point in seam:
-    #         new_frame[point[1]].insert(point[0], frame[point[1]][point[0]])
-    #
-    # new_frame = np.array(new_frame)
-    # return new_frame
-    frameCopy = frame.copy()
-    new_frame = np.zeros((frame.shape[0], frame.shape[1], frame.shape[2]))
+    new_frame = [[frame[i][j] for j in range(frame.shape[1])] for i in range(frame.shape[0])]
     for seam in seams:
-        new_frame = np.zeros((new_frame.shape[0], new_frame.shape[1] + 1, new_frame.shape[2]))
         for point in seam:
-            new_frame[point[1]] = np.concatenate([frameCopy[point[1]][0:point[0]], np.array([frameCopy[point[1]][point[0]]]), frameCopy[point[1]][point[0]:]])
-        frameCopy = new_frame.copy()
+            new_frame[point[0]].insert(point[1], frame[point[0]][point[1]])
+    
+    new_frame = np.array(new_frame)
     return new_frame
+    # frameCopy = frame.copy()
+    # new_frame = np.zeros((frame.shape[0], frame.shape[1], frame.shape[2]))
+    # for seam in seams:
+    #     new_frame = np.zeros((new_frame.shape[0], new_frame.shape[1] + 1, new_frame.shape[2]))
+    #     for point in seam:
+    #         new_frame[point[1]] = np.concatenate([frameCopy[point[1]][0:point[0]], np.array([frameCopy[point[1]][point[0]]]), frameCopy[point[1]][point[0]:]])
+    #     frameCopy = new_frame.copy()
+    # return new_frame
 
 def highlight_seam(frame, seam):
     new_frame = frame.copy()
@@ -254,10 +254,28 @@ def retarget_video(videoIn, width, height, window, weights):
             cv2.imwrite("images/temp_seam_expand" + str(j) + ".jpg", mask)
             del video[j]
             video.insert(j, new_frame)
-            gc.collect()
+        write_video(video, "videos/temp_expand_.mp4", len(video[0][0]), len(video[0]))
 
     if (heightDif < 0):
-        pass
+        min_seam = None
+        for j in range(0, len(video)):
+            print("Current Frame: ", j+1)
+            currentFrame = np.array(video[j])
+            currentFrame = np.transpose(currentFrame, axes=(1, 0, 2))
+            costMap = getPixelMeasures(currentFrame, window, weights, min_seam)
+            cv2.imwrite("images/temp_costmap_expand_horiz" + str(j) + ".jpg", costMap)
+            seam, energies = carve_seams_piecewise(costMap, window)
+            newSeams, newEnergies = get_n_seams(seam, energies, abs(widthDif))
+            min_index = np.where(energies[-1] == np.amin(energies[-1]))[0][::-1]
+            min_index = min_index[0]
+            min_seam = np.array(get_seam(seam, min_index))
+            new_frame = add_seams(currentFrame, newSeams)
+            new_frame = np.transpose(new_frame, axes=(1, 0, 2))
+            mask = highlight_seam(currentFrame, min_seam)
+            cv2.imwrite("images/temp_seam_expand_horiz" + str(j) + ".jpg", mask)
+            del video[j]
+            video.insert(j, new_frame)
+        write_video(video, "videos/temp_expand_horiz.mp4", len(video[0][0]), len(video[0]))
 
     return video
 
@@ -295,7 +313,7 @@ if __name__ == '__main__':
     print("INFO: Finished Reading Video")
     newVideo = retarget_video(video, args.width, args.height, args.window, (args.spatialW, args.temporalW, args.saliencyW))
     print("INFO: Writing Output Video")
-    write_video(newVideo, args.out, args.width, args.height)
+    write_video(newVideo, args.out, len(newVideo[0][0]), len(newVideo[0]))
 
     #
     # print("INFO: Calculating Saliency Map")
