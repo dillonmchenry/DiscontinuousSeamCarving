@@ -28,3 +28,7 @@ This will resize a provided video from 720x480 to 660x420
 ```
 python disc_video_carving.py --video spacex_launch480.m4v --window 5 --width 660 --height 420 --out spacex_launch_retargeted_both.mp4
 ```
+
+## Example output
+
+All example output is provided in the EXAMPLES folder. The output will in .mp4 format
