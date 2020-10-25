@@ -1,5 +1,4 @@
 import disc_video_carving
-import seam
 import cv2
 import numpy as np
 

@@ -1,26 +1,13 @@
 import cv2
-import imageio
 import numpy as np
 import argparse
-import imageio as img
-import gc
 from numba import jit
-
-import seam
 import spatial_coherence
 
-# ------------Things to Implement-------------------
-
-# TODO: Determine spatial coherence of removing a pixel
-# TODO: Determine temporal coherence cost of removing a pixel
-# TODO: Determine saliency of removing a pixel
-# TODO: Combine the Sc, Tc, and S into a weighted ratio M
-# TODO: Implement image seam carving algorithm from
-#  (http://www.faculty.idc.ac.il/arik/SCWeb/imret/index.html) to minimize m
-
-# OF COURSE THERE'S OTHER STUFF I JUST CANT THINK OF IT RN
 
 # -----------Captures Video Input------------------
+
+
 def read_video(name):
     cap = cv2.VideoCapture(name)
 
@@ -51,23 +38,7 @@ def write_video(video, name, width, height):
     # Release everything if job is finished
     out.release()
 
-
-def rotate_image(image, clockwise):
-    k = 1 if clockwise else 3
-    return np.rot90(image, k)
-
-
-def visualize(im, boolmask=None, rotate=False):
-    SEAM_COLOR = np.array([255, 200, 200])
-    vis = im.astype(np.uint8)
-    if boolmask is not None:
-        vis[np.where(boolmask == False)] = SEAM_COLOR
-    if rotate:
-        vis = rotate_image(vis, False)
-    #cv2.imshow("visualization", vis)
-    #cv2.waitKey(1)
-    return vis
-
+# Gradient-based forward energy map
 def saliency_map(gray_scale):
     height, width = gray_scale.shape[:2]
 
@@ -97,9 +68,9 @@ def saliency_map(gray_scale):
 
     return energy.astype(np.uint8)
 
+
 @jit(nopython=True)
 def carve_seams_piecewise(frame, width):
-    #print("Carving seams")
     energies = frame.copy()
     seams = [[0 for j in range(energies.shape[1])] for i in range(energies.shape[0])]
 
@@ -116,12 +87,14 @@ def carve_seams_piecewise(frame, width):
 
     return (np.array(seams), energies)
 
+
 def get_seam(seams, n):
     seam = []
     for i in reversed(range(seams.shape[0])):
         seam.append([i, n])
         n = seams[i, n]
     return seam
+
 
 def get_n_seams(seams, energies, n):
     newSeams = []
@@ -137,6 +110,7 @@ def get_n_seams(seams, energies, n):
         newEnergies.append(energies[-1][minIndex])
     return (newSeams, newEnergies)
 
+
 def remove_seam(frame, seams, n):
     mask = [[[1 for x in range(3)] for j in range(frame.shape[1])] for i in range(frame.shape[0])]
     for i in reversed(range(seams.shape[0])):
@@ -146,6 +120,7 @@ def remove_seam(frame, seams, n):
     new_frame = frame[mask].reshape((frame.shape[0], frame.shape[1]-1, 3))
     return new_frame
 
+
 def add_seams(frame, seams):
     new_frame = [[frame[i][j] for j in range(frame.shape[1])] for i in range(frame.shape[0])]
     for seam in seams:
@@ -154,20 +129,14 @@ def add_seams(frame, seams):
     
     new_frame = np.array(new_frame)
     return new_frame
-    # frameCopy = frame.copy()
-    # new_frame = np.zeros((frame.shape[0], frame.shape[1], frame.shape[2]))
-    # for seam in seams:
-    #     new_frame = np.zeros((new_frame.shape[0], new_frame.shape[1] + 1, new_frame.shape[2]))
-    #     for point in seam:
-    #         new_frame[point[1]] = np.concatenate([frameCopy[point[1]][0:point[0]], np.array([frameCopy[point[1]][point[0]]]), frameCopy[point[1]][point[0]:]])
-    #     frameCopy = new_frame.copy()
-    # return new_frame
+
 
 def highlight_seam(frame, seam):
     new_frame = frame.copy()
     for pixel in seam:
         new_frame[pixel[0], pixel[1]] = [255, 180, 180]
     return new_frame
+
 
 @jit(nopython=True)
 def compute_temporal_coherence_cost(currentFrame, previousSeam):
@@ -176,19 +145,16 @@ def compute_temporal_coherence_cost(currentFrame, previousSeam):
         costMap.append([0 for x in range(currentFrame.shape[1])])
         cumulativeCost = 0
         for j in range(previousSeam[i][1]-1, -1, -1):
-            # channels1 = np.linalg.norm(currentFrame[i][j])
-            # channels2 = np.linalg.norm(currentFrame[i][j + 1])
             cumulativeCost += np.absolute(currentFrame[i][j] - currentFrame[i][j + 1])
             costMap[i][j] = cumulativeCost
         cumulativeCost = 0
         costMap[i][previousSeam[i][1]] = 0
         for j in range(previousSeam[i][1]+1, currentFrame.shape[1]):
-            # channels1 = np.linalg.norm(currentFrame[i][j])
-            # channels2 = np.linalg.norm(currentFrame[i][j - 1])
             cumulativeCost += np.absolute(currentFrame[i][j] - currentFrame[i][j - 1])
             costMap[i][j] = cumulativeCost
             
     return np.array(costMap, dtype=np.float64)
+
 
 def retarget_video(videoIn, width, height, window, weights):
     video = videoIn.copy()
@@ -196,7 +162,7 @@ def retarget_video(videoIn, width, height, window, weights):
     heightDif = len(video[0]) - height
 
     # Shrink first
-    if (widthDif > 0):
+    if widthDif > 0:
         for i in range(0, widthDif):
             print("Current Seam: ", i + 1)
             min_seam = None
@@ -215,7 +181,7 @@ def retarget_video(videoIn, width, height, window, weights):
                 del video[j]
                 video.insert(j, new_frame)
             write_video(video, "videos/temp" + str(i) + ".mp4", len(video[0][0]), len(video[0]))
-    if (heightDif > 0):
+    if heightDif > 0:
         for i in range(0, heightDif):
             print("Current Seam: ", i + 1)
             min_seam = None
@@ -236,8 +202,9 @@ def retarget_video(videoIn, width, height, window, weights):
                 del video[j]
                 video.insert(j, new_frame)
             write_video(video, "videos/temp_horiz" + str(i) + ".mp4", len(video[0][0]), len(video[0]))
+
     # Then expand
-    if (widthDif < 0):
+    if widthDif < 0:
         min_seam = None
         for j in range(0, len(video)):
             print("Current Frame: ", j+1)
@@ -256,7 +223,7 @@ def retarget_video(videoIn, width, height, window, weights):
             video.insert(j, new_frame)
         write_video(video, "videos/temp_expand_.mp4", len(video[0][0]), len(video[0]))
 
-    if (heightDif < 0):
+    if heightDif < 0:
         min_seam = None
         for j in range(0, len(video)):
             print("Current Frame: ", j+1)
@@ -279,6 +246,7 @@ def retarget_video(videoIn, width, height, window, weights):
 
     return video
 
+
 # Weights is tuple of (SC:TC:S)
 def getPixelMeasures(frameIn, spatialWindow, weights, previousSeam=None):
     frame = cv2.cvtColor(frameIn, cv2.COLOR_BGR2GRAY)
@@ -294,6 +262,7 @@ def getPixelMeasures(frameIn, spatialWindow, weights, previousSeam=None):
     temporalMap = temporalMap * temporalWeight
     return (spatialMap + saliency + temporalMap) / np.max(spatialMap + saliency + temporalMap) * 255
 
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Retargets a video to specified size")
     parser.add_argument('--video', type=str, help='The path to the video to retarget')
@@ -305,7 +274,6 @@ if __name__ == '__main__':
     parser.add_argument('--spatialW', type=float, help='Spatial Weight in seam carving', default=5)
     parser.add_argument('--temporalW', type=float, help='Temporal Weight in seaming carving', default=0.5)
 
-
     args = parser.parse_args()
 
     print("INFO: Reading Video: ", args.video)
@@ -315,40 +283,3 @@ if __name__ == '__main__':
     print("INFO: Writing Output Video")
     write_video(newVideo, args.out, len(newVideo[0][0]), len(newVideo[0]))
 
-    #
-    # print("INFO: Calculating Saliency Map")
-    # saliency_frame = saliency_map(video[120])
-    #
-    # print("INFO: Calculating Seams")
-    # seam, energies = carve_seams(saliency_frame)
-    # print("INFO: Finished Calculating Seams")
-    # min_index = np.where(energies == np.amin(energies))[0][::-1]
-    # min_index = min_index[0]
-    # min_seam = seam[min_index]
-    #
-    # mask = highlight_seam(video[120], min_seam)
-    # print("INFO: Saving New Image")
-    # cv2.imwrite("saliency_seam_demo.jpg", mask)
-    #
-    # print("INFO: Calculating Temporal Cost to Next Frame")
-    # temporal_map = compute_temporal_coherence_cost(video[121], min_seam)
-    # temporal_map = temporal_map / np.max(temporal_map) * 255
-    # cv2.imwrite("temporal_demo.jpg", temporal_map)
-    # #print("INFO: Saving New Image")
-    # #cv2.imwrite("temporal_map_demo.jpg", temporal_map.astype(np.uint8))
-    #
-    # print("INFO: Calculating Merged Maps")
-    # costMap = getPixelMeasures(video[121], 15, (5, 1, 2), min_seam)
-    # cv2.imwrite("cost_map_demo.jpg", costMap)
-    #
-    # print("INFO: Calculating Seams from Temporal Cost")
-    # seam2, energies2 = carve_seams_piecewise(costMap, 3)
-    # min_index2 = np.where(energies2 == np.amin(energies2))[0][::-1]
-    # min_index2 = min_index2[0]
-    # min_seam2 = seam2[min_index]
-    #
-    # mask2 = highlight_seam(video[121], min_seam2)
-    # print("INFO: Saving New Image")
-    # cv2.imwrite("cost_seam_demo.jpg", mask2)
-
-    #write_video(video, args.out)
